@@ -33,3 +33,8 @@ FORMS    += dialog.ui \
 
 RESOURCES += \
     resources.qrc
+
+UI_DIR += tmp/forms
+RCC_DIR += tmp/rcc
+MOC_DIR +=tmp/moc
+OBJECTS_DIR +=tmp/obj
