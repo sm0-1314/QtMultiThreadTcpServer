@@ -2,6 +2,8 @@
 
 #include "dialog.h"
 #include "ui_dialog.h"
+#include <QRegExp>
+#include <windef.h>
 
 Dialog::Dialog(QWidget *parent) :
     QDialog(parent),
@@ -9,17 +11,18 @@ Dialog::Dialog(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->loopStopBtn->setDisabled(true);
     ui->num->setText(QString("%1").arg(count));
 
-    server = new Server(this);
+    //获取本机IP
+    foreach(const QHostAddress& hostAddress,QNetworkInterface::allAddresses())
+            if (hostAddress.toIPv4Address() )
+                    ui->comboBox_host->addItem(hostAddress.toString());
+    ui->comboBox_host->addItem("0.0.0.0");
 
-    server->listen(QHostAddress::Any, 8712);
+    statusBar = new QStatusBar(this);
 
-    connect(ui->sendBtn, SIGNAL(clicked()), this, SLOT(sendMsg()));
-    connect(ui->clearBtn, SIGNAL(clicked()), this, SLOT(clearMsg()));
+    setStyle("1");
     connect(timer, SIGNAL(timeout()), this, SLOT(sendLoopMessage()));
-    connect(ui->loopStopBtn, SIGNAL(clicked(bool)), this, SLOT(stopLoopSend()));
 }
 
 Dialog::~Dialog()
@@ -37,7 +40,21 @@ void Dialog::showConnection()
     /* change connect number while connection is connecting */
     ui->num->setText(QString("%1").arg(count));
 }
+void Dialog::setStyle(QString style)
+{
+    QString qssFile = ":/qss/Resources/qss.qss";
 
+
+    QFile file(qssFile);
+
+    if (file.open(QFile::ReadOnly)) {
+        QString qss = QLatin1String(file.readAll());
+//        QString paletteColor = qss.mid(20, 7);
+//        qApp->setPalette(QPalette(QColor(paletteColor)));
+        qApp->setStyleSheet(qss);
+        file.close();
+    }
+}
 void Dialog::showDisconnection(int socketDescriptor)
 {
     count--;
@@ -49,12 +66,52 @@ void Dialog::showDisconnection(int socketDescriptor)
     ui->objectBox->clear();
 
     for (int i = 0; i < server->socketList.size(); i++) {
-         ui->objectBox->addItem(QString("%1").arg(server->socketList.at(i)));
+        ui->objectBox->addItem(QString("%1").arg(server->socketList.at(i)));
     }
 
     //change connect number while connection is disconnecting
     ui->num->setText(QString("%1").arg(count));
 }
+// Hex 转AscII码
+int Hex2Ascii(const char* hex, char* ascii)
+{
+    int len = strlen(hex), tlen, i, cnt;
+
+    for (i = 0, cnt = 0, tlen = 0; i<len; i++)
+    {
+        char c = toupper(hex[i]);
+
+        if ((c>='0'&& c<='9') || (c>='A'&& c<='F'))
+        {
+            BYTE t = (c >= 'A') ? c - 'A' + 10 : c - '0';
+
+            if (cnt)
+                ascii[tlen++] += t, cnt = 0;
+            else
+                ascii[tlen] = t << 4, cnt = 1;
+        }
+    }
+
+    return tlen;
+}
+// AscII码 转 Hex
+int Ascii2Hex(const char* ascii, char* hex)
+{
+    int i, len = strlen(ascii);
+    char chHex[] = "0123456789ABCDEF";
+
+    for (i = 0; i<len; i++)
+    {
+        hex[i*3]	= chHex[((BYTE)ascii[i]) >> 4];
+        hex[i*3 +1]	= chHex[((BYTE)ascii[i]) & 0xf];
+        hex[i*3 +2]	= ' ';
+    }
+
+    hex[len * 3] = '\0';
+
+    return len;
+}
+
 
 int charToHex(char c)
 {
@@ -72,11 +129,11 @@ int charToHex(char c)
 void Dialog::sendMsg()
 {
     /* if send message is null return */
-    if (ui->sendMsg->text() == "") {
+    if (ui->sendMsg->toPlainText()== "") {
         QMessageBox::information(NULL,
-                        tr("注意"),
-                        tr("发送内容不能为空！"),
-                        QMessageBox::Yes);
+                                 tr("注意"),
+                                 tr("发送内容不能为空！"),
+                                 QMessageBox::Yes);
 
         return ;
     }
@@ -88,15 +145,14 @@ void Dialog::sendMsg()
 
         timer->start();
 
-        ui->sendBtn->setDisabled(true);
-        ui->loopStopBtn->setDisabled(false);
+        ui->sendBtn->setText("停止");
 
         return;
     }
 
     /* whether send hex data */
-    if (ui->hexCheckBox->isChecked()) {
-        QString temp = ui->sendMsg->text();
+    if (ui->hexCheckBox_tx->isChecked()) {
+        QString temp = ui->sendMsg->toPlainText();
         int temp_value;
         QByteArray data;
 
@@ -110,7 +166,7 @@ void Dialog::sendMsg()
         }
     } else {
         /* send original data */
-        emit sendData(ui->sendMsg->text().toLocal8Bit(), ui->objectBox->currentText().toInt());
+        emit sendData(ui->sendMsg->toPlainText().toLocal8Bit(), ui->objectBox->currentText().toInt());
     }
 
     ui->sendMsg->setText("");
@@ -118,14 +174,14 @@ void Dialog::sendMsg()
 
 void stringToHtmlFilter(QString &str)
 {
-   str.replace("&","&amp;");
-   str.replace(">","&gt;");
-   str.replace("<","&lt;");
-   str.replace("\"","&quot;");
-   str.replace("\'","&#39;");
-   str.replace(" ","&nbsp;");
-   str.replace("\n","<br>");
-   str.replace("\r","<br>");
+    str.replace("&","&amp;");
+    str.replace(">","&gt;");
+    str.replace("<","&lt;");
+    str.replace("\"","&quot;");
+    str.replace("\'","&#39;");
+    str.replace(" ","&nbsp;");
+    str.replace("\n","<br>");
+    str.replace("\r","<br>");
 }
 
 void stringToHtml(QString &str, QColor color)
@@ -195,12 +251,129 @@ void Dialog::clearMsg()
 
 void Dialog::sendLoopMessage()
 {
-    emit sendData(ui->sendMsg->text().toLocal8Bit(), ui->objectBox->currentText().toInt());
+    emit sendData(ui->sendMsg->toPlainText().toLocal8Bit(), ui->objectBox->currentText().toInt());
 }
 
 void Dialog::stopLoopSend()
 {
     timer->stop();
-    ui->sendBtn->setDisabled(false);
-    ui->loopStopBtn->setDisabled(true);
+
+    ui->sendBtn->setText("发送");
+}
+//打开
+void Dialog::on_pushButton_open_clicked()
+{
+    if(ui->comboBox_type->currentIndex()==0){//TCP Server
+        this->open_tcpServer();
+    }else if(ui->comboBox_type->currentIndex()==1){//TCP Client
+
+    }else if(ui->comboBox_type->currentIndex()==2){//UDP
+
+    }
+
+}
+void Dialog::open_tcpServer(){
+    if(ui->pushButton_open->text().trimmed()=="关闭"){
+        // TODO 回收资源
+        ui->pushButton_open->setText("打开");
+        ui->pushButton_open->setStyleSheet("QPushButton{background-image: url(:/pic/Resources/lamp_red.png)}");
+        if(server->isListening()){
+            server->close();
+            qDebug()<<"关闭服务器";
+        }
+        return;
+    }
+    QString port = ui->lineEdit_port->text().trimmed();
+    if(port.isEmpty() || !(port.toInt()<=65535 && port.toInt()>=0)){
+        QMessageBox::information(NULL,
+                                 tr("注意"),
+                                 tr("端口号不合法！"),
+                                 QMessageBox::Yes);
+        return ;
+    }
+    server = new Server(this);
+
+    if(server->listen(QHostAddress(ui->comboBox_host->currentText()), port.toInt())){
+        qDebug()<<"启动服务成功,端口号:"<<port;
+        ui->pushButton_open->setText("关闭");
+        ui->pushButton_open->setStyleSheet("QPushButton{background-image: url(:/pic/Resources/lamp_gray.png)}");
+
+    }else{
+        QString info;
+        QAbstractSocket::SocketError socketError = server->serverError();
+        switch (socketError) {
+        case QAbstractSocket::ConnectionRefusedError:
+        info = "该连接被拒绝(或超时)";
+            break;
+
+        case QAbstractSocket::AddressInUseError:
+        info = "指定的地址已经在使用";
+            break;
+        case QAbstractSocket::UnknownSocketError:
+        info = "未知错误";
+            break;
+        default:
+            info = "启动服务器失败,原因"+server->errorString();
+            break;
+        }
+        qDebug()<<info;
+        QMessageBox::information(NULL,
+                                 tr("注意"),
+                                 info,
+                                 QMessageBox::Yes);
+    }
+}
+
+void Dialog::on_reset_count_clicked()
+{
+
+    rx_num = 0;
+    tx_num = 0;
+    setRX_TX_num();
+}
+void Dialog::setRX_TX_num(){
+    ui->tx_num->setText(QString::number(tx_num));
+    ui->rx_num->setText(QString::number(rx_num));
+}
+
+void Dialog::on_sendBtn_clicked()
+{
+    if(ui->sendBtn->text()=="发送"){
+        sendMsg();
+    }else{
+       stopLoopSend();
+    }
+
+}
+
+void Dialog::on_clearBtn_clicked()
+{
+    clearMsg();
+}
+
+void Dialog::on_hexCheckBox_tx_clicked(bool checked)
+{
+    QString temp = ui->sendMsg->toPlainText();
+    if(temp.isEmpty()){
+        return;
+    }
+
+    if(checked){//Hex发送
+
+
+        QByteArray ba = temp.toLocal8Bit();
+        const char* ch = ba.data();
+
+        char * hexchar;
+        int length = Ascii2Hex(ch,hexchar);
+        ui->sendMsg->setText( QString(QLatin1String(hexchar)));
+
+    }else{
+        temp.replace(" ","");
+        QByteArray ba = temp.toLocal8Bit();
+        const char* ch = ba.data();
+        char * ascchar;
+        int length = Hex2Ascii(ch,ascchar);
+        ui->sendMsg->setText( QString(QLatin1String(ascchar)));
+    }
 }

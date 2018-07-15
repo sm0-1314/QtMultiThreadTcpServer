@@ -1,0 +1,15 @@
+INPUT(
+./debug\main.o
+./debug\dialog.o
+./debug\serverthread.o
+./debug\server.o
+./debug\mysocket.o
+./debug\frmmessagebox.o
+./debug\iconhelper.o
+./debug\qrc_resources.o
+./debug\moc_dialog.o
+./debug\moc_serverthread.o
+./debug\moc_server.o
+./debug\moc_mysocket.o
+./debug\moc_frmmessagebox.o
+);

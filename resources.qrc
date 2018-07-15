@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/pic">
+        <file>Resources/lamp_gray.png</file>
+        <file>Resources/lamp_red.png</file>
+    </qresource>
+    <qresource prefix="/qss">
+        <file>Resources/qss.qss</file>
+    </qresource>
+    <qresource prefix="/font">
+        <file>Resources/qt_zh_CN.qm</file>
+    </qresource>
+</RCC>

@@ -16,11 +16,20 @@ SOURCES += main.cpp\
         dialog.cpp \
     serverthread.cpp \
     server.cpp \
-    mysocket.cpp
+    mysocket.cpp\
+frmmessagebox.cpp \
+iconhelper.cpp
 
 HEADERS  += dialog.h \
     serverthread.h \
     server.h \
-    mysocket.h
+    mysocket.h \
+    myhelper.h \
+    frmmessagebox.h \
+iconhelper.h
 
-FORMS    += dialog.ui
+FORMS    += dialog.ui \
+    frmmessagebox.ui
+
+RESOURCES += \
+    resources.qrc

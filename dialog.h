@@ -5,6 +5,7 @@
 #include <QTimer>
 
 #include "server.h"
+#include <QStatusBar>
 
 namespace Ui {
 class Dialog;
@@ -33,15 +34,33 @@ private slots:
     void clearMsg();
     void sendLoopMessage();
     void stopLoopSend();
+    void setRX_TX_num();
+    void setStyle(QString style);
+
+    void open_tcpServer();
+
+    void on_pushButton_open_clicked();
+
+    void on_reset_count_clicked();
+
+    void on_sendBtn_clicked();
+
+    void on_clearBtn_clicked();
+
+    void on_hexCheckBox_tx_clicked(bool checked);
 
 private:
     Ui::Dialog *ui;
 
     int count;
+    int rx_num;
+    int tx_num;
 
-    Server *server;
+    Server *server = NULL;
 
     QTimer *timer;
+
+    QStatusBar * statusBar;
 };
 
 #endif // DIALOG_H
