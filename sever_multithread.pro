@@ -17,16 +17,14 @@ SOURCES += main.cpp\
     serverthread.cpp \
     server.cpp \
     mysocket.cpp\
-frmmessagebox.cpp \
 iconhelper.cpp
 
 HEADERS  += dialog.h \
     serverthread.h \
     server.h \
     mysocket.h \
-    myhelper.h \
-    frmmessagebox.h \
-iconhelper.h
+iconhelper.h \
+    myhelper.h
 
 FORMS    += dialog.ui \
     frmmessagebox.ui

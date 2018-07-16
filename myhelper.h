@@ -1,112 +1,48 @@
 #ifndef MYHELPER_H
 #define MYHELPER_H
-
-#include <QtCore>
-#include <QtGui>
-#include <QDesktopWidget>
-#include "frmmessagebox.h"
-
-
-class myHelper: public QObject
+#include <windef.h>
+#include <QObject>
+class myHelper:public QObject
 {
-
 public:
-
-    //设置为开机启动
-    static void AutoRunWithSystem(bool IsAutoRun, QString AppName, QString AppPath)
+    // Hex 转AscII码
+    static int Hex2Ascii(const char* hex, char* ascii)
     {
-        QSettings *reg = new QSettings(
-            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
-            QSettings::NativeFormat);
+        int len = strlen(hex), tlen, i, cnt;
 
-        if (IsAutoRun) {
-            reg->setValue(AppName, AppPath);
-        } else {
-            reg->setValue(AppName, "");
+        for (i = 0, cnt = 0, tlen = 0; i<len; i++)
+        {
+            char c = toupper(hex[i]);
+
+            if ((c>='0'&& c<='9') || (c>='A'&& c<='F'))
+            {
+                BYTE t = (c >= 'A') ? c - 'A' + 10 : c - '0';
+
+                if (cnt)
+                    ascii[tlen++] += t, cnt = 0;
+                else
+                    ascii[tlen] = t << 4, cnt = 1;
+            }
         }
-    }
 
-    //设置编码为UTF8
-    static void SetUTF8Code()
-    {
-#if (QT_VERSION <= QT_VERSION_CHECK(5,0,0))
-        QTextCodec *codec = QTextCodec::codecForName("UTF-8");
-        QTextCodec::setCodecForLocale(codec);
-        QTextCodec::setCodecForCStrings(codec);
-        QTextCodec::setCodecForTr(codec);
-#endif
+        return tlen;
     }
-
-    //设置皮肤样式
-    static void SetStyle(const QString &styleName)
+    // AscII码 转 Hex
+    static int Ascii2Hex(const char* ascii, char* hex)
     {
-        QFile file(QString(":/qss/Resources/qss.qss"));
-        file.open(QFile::ReadOnly);
-        QString qss = QLatin1String(file.readAll());
-        qApp->setStyleSheet(qss);
-        qApp->setPalette(QPalette(QColor("#F0F0F0")));
-        file.close();
-    }
+        int i, len = strlen(ascii);
+        char chHex[] = "0123456789ABCDEF";
 
-    //加载中文字符
-    static void SetChinese()
-    {
-        QTranslator *translator = new QTranslator(qApp);
-        translator->load(":/font/Resources/qt_zh_CN.qm");
-        qApp->installTranslator(translator);
-    }
-
-    //判断是否是IP地址
-    static bool IsIP(QString IP)
-    {
-        QRegExp RegExp("((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)");
-        return RegExp.exactMatch(IP);
-    }
-
-    //显示信息框,仅确定按钮
-    static void ShowMessageBoxInfo(QString info)
-    {
-        frmMessageBox *msg = new frmMessageBox;
-        msg->SetMessage(info, 0);
-        msg->exec();
-    }
-
-    //显示错误框,仅确定按钮
-    static void ShowMessageBoxError(QString info)
-    {
-        frmMessageBox *msg = new frmMessageBox;
-        msg->SetMessage(info, 2);
-        msg->exec();
-    }
-
-    //显示询问框,确定和取消按钮
-    static int ShowMessageBoxQuesion(QString info)
-    {
-        frmMessageBox *msg = new frmMessageBox;
-        msg->SetMessage(info, 1);
-        return msg->exec();
-    }
-
-    //延时
-    static void Sleep(int sec)
-    {
-        QTime dieTime = QTime::currentTime().addMSecs(sec);
-        while ( QTime::currentTime() < dieTime ) {
-            QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+        for (i = 0; i<len; i++)
+        {
+            hex[i*3]	= chHex[((BYTE)ascii[i]) >> 4];
+            hex[i*3 +1]	= chHex[((BYTE)ascii[i]) & 0xf];
+            hex[i*3 +2]	= ' ';
         }
+
+        hex[len * 3] = '\0';
+
+        return len * 3;
     }
-
-    //窗体居中显示
-    static void FormInCenter(QWidget *frm)
-    {
-        int frmX = frm->width();
-        int frmY = frm->height();
-        QDesktopWidget w;
-        int deskWidth = w.width();
-        int deskHeight = w.height();
-        QPoint movePoint(deskWidth / 2 - frmX / 2, deskHeight / 2 - frmY / 2);
-        frm->move(movePoint);
-    }
-
-
+};
 #endif // MYHELPER_H

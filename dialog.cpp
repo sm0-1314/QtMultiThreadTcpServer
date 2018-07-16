@@ -2,8 +2,7 @@
 
 #include "dialog.h"
 #include "ui_dialog.h"
-#include <QRegExp>
-#include <windef.h>
+#include "myhelper.h"
 
 Dialog::Dialog(QWidget *parent) :
     QDialog(parent),
@@ -15,8 +14,8 @@ Dialog::Dialog(QWidget *parent) :
 
     //获取本机IP
     foreach(const QHostAddress& hostAddress,QNetworkInterface::allAddresses())
-            if (hostAddress.toIPv4Address() )
-                    ui->comboBox_host->addItem(hostAddress.toString());
+        if (hostAddress.toIPv4Address() )
+            ui->comboBox_host->addItem(hostAddress.toString());
     ui->comboBox_host->addItem("0.0.0.0");
 
     statusBar = new QStatusBar(this);
@@ -29,6 +28,7 @@ Dialog::~Dialog()
 {
     delete ui;
 }
+
 
 void Dialog::showConnection()
 {
@@ -49,8 +49,8 @@ void Dialog::setStyle(QString style)
 
     if (file.open(QFile::ReadOnly)) {
         QString qss = QLatin1String(file.readAll());
-//        QString paletteColor = qss.mid(20, 7);
-//        qApp->setPalette(QPalette(QColor(paletteColor)));
+        //        QString paletteColor = qss.mid(20, 7);
+        //        qApp->setPalette(QPalette(QColor(paletteColor)));
         qApp->setStyleSheet(qss);
         file.close();
     }
@@ -72,45 +72,7 @@ void Dialog::showDisconnection(int socketDescriptor)
     //change connect number while connection is disconnecting
     ui->num->setText(QString("%1").arg(count));
 }
-// Hex 转AscII码
-int Hex2Ascii(const char* hex, char* ascii)
-{
-    int len = strlen(hex), tlen, i, cnt;
 
-    for (i = 0, cnt = 0, tlen = 0; i<len; i++)
-    {
-        char c = toupper(hex[i]);
-
-        if ((c>='0'&& c<='9') || (c>='A'&& c<='F'))
-        {
-            BYTE t = (c >= 'A') ? c - 'A' + 10 : c - '0';
-
-            if (cnt)
-                ascii[tlen++] += t, cnt = 0;
-            else
-                ascii[tlen] = t << 4, cnt = 1;
-        }
-    }
-
-    return tlen;
-}
-// AscII码 转 Hex
-int Ascii2Hex(const char* ascii, char* hex)
-{
-    int i, len = strlen(ascii);
-    char chHex[] = "0123456789ABCDEF";
-
-    for (i = 0; i<len; i++)
-    {
-        hex[i*3]	= chHex[((BYTE)ascii[i]) >> 4];
-        hex[i*3 +1]	= chHex[((BYTE)ascii[i]) & 0xf];
-        hex[i*3 +2]	= ' ';
-    }
-
-    hex[len * 3] = '\0';
-
-    return len;
-}
 
 
 int charToHex(char c)
@@ -303,14 +265,14 @@ void Dialog::open_tcpServer(){
         QAbstractSocket::SocketError socketError = server->serverError();
         switch (socketError) {
         case QAbstractSocket::ConnectionRefusedError:
-        info = "该连接被拒绝(或超时)";
+            info = "该连接被拒绝(或超时)";
             break;
 
         case QAbstractSocket::AddressInUseError:
-        info = "指定的地址已经在使用";
+            info = "指定的地址已经在使用";
             break;
         case QAbstractSocket::UnknownSocketError:
-        info = "未知错误";
+            info = "未知错误";
             break;
         default:
             info = "启动服务器失败,原因"+server->errorString();
@@ -341,7 +303,7 @@ void Dialog::on_sendBtn_clicked()
     if(ui->sendBtn->text()=="发送"){
         sendMsg();
     }else{
-       stopLoopSend();
+        stopLoopSend();
     }
 
 }
@@ -354,26 +316,21 @@ void Dialog::on_clearBtn_clicked()
 void Dialog::on_hexCheckBox_tx_clicked(bool checked)
 {
     QString temp = ui->sendMsg->toPlainText();
+    qDebug()<<temp;
     if(temp.isEmpty()){
         return;
     }
+    QByteArray ba = temp.toLocal8Bit();
+    const char* ch = ba.data();
 
     if(checked){//Hex发送
-
-
-        QByteArray ba = temp.toLocal8Bit();
-        const char* ch = ba.data();
-
         char * hexchar;
-        int length = Ascii2Hex(ch,hexchar);
+        int length = myHelper::Ascii2Hex(ch,hexchar);
         ui->sendMsg->setText( QString(QLatin1String(hexchar)));
 
     }else{
-        temp.replace(" ","");
-        QByteArray ba = temp.toLocal8Bit();
-        const char* ch = ba.data();
-        char * ascchar;
-        int length = Hex2Ascii(ch,ascchar);
+        char * ascchar=new char;
+        int length = myHelper::Hex2Ascii(ch,ascchar);
         ui->sendMsg->setText( QString(QLatin1String(ascchar)));
     }
 }

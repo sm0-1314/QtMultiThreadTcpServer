@@ -3,7 +3,6 @@
 
 #include <QDialog>
 #include <QTimer>
-
 #include "server.h"
 #include <QStatusBar>
 
